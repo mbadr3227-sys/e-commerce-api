@@ -1,0 +1,484 @@
+openapi: 3.0.3
+info:
+  title: E-Commerce API
+  description: >
+    A RESTful e-commerce API built with Express, Node.js and PostgreSQL.
+    Supports user registration and authentication, product management,
+    shopping carts, checkout and order management.
+  version: 1.0.0
+  contact:
+    name: Mohamed Badr
+    url: https://github.com/mbadr3227-sys
+
+servers:
+  - url: http://localhost:4000
+    description: Local development server
+
+tags:
+  - name: Auth
+    description: Registration, login and logout
+  - name: Products
+    description: Browse and manage products
+  - name: Users
+    description: Manage the authenticated user's profile
+  - name: Cart
+    description: Shopping cart and checkout
+  - name: Orders
+    description: Order history and status
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        email: { type: string, example: user@example.com }
+        first_name: { type: string, example: Mohamed }
+        last_name: { type: string, example: Badr }
+        address: { type: string, example: "Durham, UK" }
+        created_at: { type: string, format: date-time }
+
+    Product:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Wireless Mouse }
+        description: { type: string }
+        price: { type: string, example: "24.99" }
+        stock: { type: integer, example: 120 }
+        category: { type: string, example: electronics }
+        image_url: { type: string }
+
+    CartItem:
+      type: object
+      properties:
+        product_id: { type: integer }
+        quantity: { type: integer }
+        name: { type: string }
+        price: { type: string }
+        line_total: { type: string }
+
+    Cart:
+      type: object
+      properties:
+        cartId: { type: integer }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CartItem' }
+        itemCount: { type: integer }
+        total: { type: number, example: 224.96 }
+
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        user_id: { type: integer }
+        total: { type: string, example: "224.96" }
+        status:
+          type: string
+          enum: [pending, paid, shipped, delivered, cancelled]
+        shipping_address: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, example: user@example.com }
+                password: { type: string, minLength: 8, example: password123 }
+                firstName: { type: string }
+                lastName: { type: string }
+                address: { type: string }
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in and start a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out and destroy the session
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: Logout successful
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /products:
+    get:
+      tags: [Products]
+      summary: List products
+      parameters:
+        - in: query
+          name: category
+          schema: { type: string }
+          description: Filter by category
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Search by product name
+      responses:
+        '200':
+          description: A list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+    post:
+      tags: [Products]
+      summary: Create a product
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                price: { type: number }
+                stock: { type: integer }
+                category: { type: string }
+                imageUrl: { type: string }
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /products/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Products]
+      summary: Get a single product
+      responses:
+        '200':
+          description: The product
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Products]
+      summary: Update a product
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                price: { type: number }
+                stock: { type: integer }
+                category: { type: string }
+                imageUrl: { type: string }
+      responses:
+        '200':
+          description: Updated product
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Products]
+      summary: Delete a product
+      security: [{ cookieAuth: [] }]
+      responses:
+        '204':
+          description: Product deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get the current user's profile
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: The user profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [Users]
+      summary: Update the current user's profile
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                address: { type: string }
+      responses:
+        '200':
+          description: Updated profile
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [Users]
+      summary: Delete the current user's account
+      security: [{ cookieAuth: [] }]
+      responses:
+        '204':
+          description: Account deleted
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /cart:
+    get:
+      tags: [Cart]
+      summary: Get the current user's cart
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: The cart with its items
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      tags: [Cart]
+      summary: Empty the cart
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: The now-empty cart
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /cart/items:
+    post:
+      tags: [Cart]
+      summary: Add a product to the cart
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId]
+              properties:
+                productId: { type: integer }
+                quantity: { type: integer, default: 1 }
+      responses:
+        '201':
+          description: The updated cart
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /cart/items/{productId}:
+    parameters:
+      - in: path
+        name: productId
+        required: true
+        schema: { type: integer }
+    put:
+      tags: [Cart]
+      summary: Update the quantity of a cart item
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: The updated cart
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Cart]
+      summary: Remove an item from the cart
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: The updated cart
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /cart/checkout:
+    post:
+      tags: [Cart]
+      summary: Turn the cart into an order
+      description: >
+        Creates an order from the cart contents inside a transaction:
+        stock is decremented, prices are frozen at purchase time and
+        the cart is emptied. Payment is mocked.
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shippingAddress:
+                  type: string
+                  description: Falls back to the user's saved address if omitted
+      responses:
+        '201':
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  order: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: Cart is empty, out of stock, or no shipping address
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /orders:
+    get:
+      tags: [Orders]
+      summary: List the current user's orders
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: A list of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /orders/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Orders]
+      summary: Get a single order with its items
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: The order
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: The order belongs to another user
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Orders]
+      summary: Update an order's status
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, paid, shipped, delivered, cancelled]
+      responses:
+        '200':
+          description: The updated order
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Orders]
+      summary: Cancel an order and restore stock
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: Order cancelled
+        '400':
+          description: Order already cancelled, shipped or delivered
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }

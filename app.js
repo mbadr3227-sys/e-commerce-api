@@ -9,10 +9,13 @@ const usersRouter = require('./routes/users');
 const app = express();
 const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
 // Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(express.static('public'));
 // Sessions stored in PostgreSQL
 app.use(
   session({
@@ -47,6 +50,20 @@ app.use('/products', productsRouter);
 app.use('/users', usersRouter);
 app.use('/cart', cartRouter);
 app.use('/orders', ordersRouter);
+// API documentation
+app.use(
+  '/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    customCssUrl: '/swagger-custom.css',
+    customSiteTitle: 'E-Commerce API — Documentation',
+    swaggerOptions: {
+      docExpansion: 'none',
+      defaultModelsExpandDepth: -1,
+      tryItOutEnabled: true,
+    },
+  })
+);
 // 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not found' });

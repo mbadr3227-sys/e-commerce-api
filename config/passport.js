@@ -34,7 +34,8 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await Users.findById(id);
-    done(null, user);
+    // If the user no longer exists, clear the session instead of erroring
+    done(null, user || false);
   } catch (err) {
     done(err);
   }
