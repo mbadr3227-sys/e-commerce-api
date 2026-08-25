@@ -10,7 +10,9 @@ info:
     name: Mohamed Badr
     url: https://github.com/mbadr3227-sys
 
-servers:
+  servers:
+  - url: https://e-commerce-api-28k6.onrender.com
+    description: Production server
   - url: http://localhost:4000
     description: Local development server
 
