@@ -1,7 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
-
+const cartRouter = require('./routes/cart');
 const db = require('./db');
 const passport = require('./config/passport');
 const authRouter = require('./routes/auth');
@@ -44,6 +44,7 @@ app.get('/', (req, res) => {
 app.use('/auth', authRouter);
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
+app.use('/cart', cartRouter);
 // 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not found' });
