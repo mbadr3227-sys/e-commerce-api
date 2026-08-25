@@ -8,6 +8,7 @@ const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const app = express();
 const productsRouter = require('./routes/products');
+const ordersRouter = require('./routes/orders');
 // Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -45,6 +46,7 @@ app.use('/auth', authRouter);
 app.use('/products', productsRouter);
 app.use('/users', usersRouter);
 app.use('/cart', cartRouter);
+app.use('/orders', ordersRouter);
 // 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not found' });

@@ -126,5 +126,34 @@ router.delete('/', async (req, res, next) => {
     next(err);
   }
 });
+// POST /cart/checkout
+router.post('/checkout', async (req, res, next) => {
+  try {
+    const Orders = require('../models/orders');
 
+    const { shippingAddress } = req.body;
+    const address = shippingAddress || req.user.address;
+
+    if (!address) {
+      return res.status(400).json({
+        error: 'A shipping address is required. Provide one or set it on your profile.',
+      });
+    }
+
+    const { order, error } = await Orders.createFromCart(
+      req.user.id,
+      req.cart.id,
+      address
+    );
+
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    const items = await Orders.getItems(order.id);
+    res.status(201).json({ message: 'Order placed successfully', order, items });
+  } catch (err) {
+    next(err);
+  }
+});
 module.exports = router;
