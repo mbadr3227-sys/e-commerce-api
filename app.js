@@ -17,6 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 // Sessions stored in PostgreSQL
+app.set('trust proxy', 1);
 app.use(
   session({
     store: new pgSession({
@@ -27,10 +28,11 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: {
+        cookie: {
       maxAge: 1000 * 60 * 60 * 24, // 24 hours
       httpOnly: true,
-      secure: false, // set to true behind HTTPS in production
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
     },
   })
 );
