@@ -1,29 +1,47 @@
 const express = require('express');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+
 const db = require('./db');
+const passport = require('./config/passport');
+const authRouter = require('./routes/auth');
 
 const app = express();
 
-// Middleware
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check route
+// Sessions stored in PostgreSQL
+app.use(
+  session({
+    store: new pgSession({
+      pool: db.pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24, // 24 hours
+      httpOnly: true,
+      secure: false, // set to true behind HTTPS in production
+    },
+  })
+);
+
+// Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Health check
 app.get('/', (req, res) => {
   res.json({ message: 'E-Commerce API is running' });
 });
 
-// Temporary DB connection test
-app.get('/db-test', async (req, res, next) => {
-  try {
-    const result = await db.query('SELECT COUNT(*) FROM products;');
-    res.json({
-      message: 'Database connected',
-      productCount: Number(result.rows[0].count),
-    });
-  } catch (err) {
-    next(err);
-  }
-});
+// Routes
+app.use('/auth', authRouter);
 
 // 404 handler
 app.use((req, res, next) => {
