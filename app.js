@@ -5,7 +5,7 @@ const pgSession = require('connect-pg-simple')(session);
 const db = require('./db');
 const passport = require('./config/passport');
 const authRouter = require('./routes/auth');
-
+const usersRouter = require('./routes/users');
 const app = express();
 const productsRouter = require('./routes/products');
 // Body parsers
@@ -43,6 +43,7 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/auth', authRouter);
 app.use('/products', productsRouter);
+app.use('/users', usersRouter);
 // 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not found' });
