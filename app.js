@@ -1,4 +1,5 @@
 const express = require('express');
+const db = require('./db');
 
 const app = express();
 
@@ -9,6 +10,19 @@ app.use(express.urlencoded({ extended: true }));
 // Health check route
 app.get('/', (req, res) => {
   res.json({ message: 'E-Commerce API is running' });
+});
+
+// Temporary DB connection test
+app.get('/db-test', async (req, res, next) => {
+  try {
+    const result = await db.query('SELECT COUNT(*) FROM products;');
+    res.json({
+      message: 'Database connected',
+      productCount: Number(result.rows[0].count),
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 404 handler
